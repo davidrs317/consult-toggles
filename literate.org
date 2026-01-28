@@ -1,0 +1,136 @@
+#+title: Consult Toggles
+#+author: David Sullivan
+#+description: A simple package created to add quick toggle-ability for consult.el
+#+property: header-args :noweb yes :tangle ./consult-toggles.el
+* Introduction
+This is supposed to be a simple package used to quickly modify the value of ~consult-project-function~. I'm trying to figure out if the toggle should be limited to specific keywords for allowed toggles, but I'm guessing that could be a list of allowed directories, so maybe this isn't a problem and it can just be a modifiable value. I don't want every single current directory to be set to the project root since that would mess up determining what the whole project is and would lose the convenience of what thsi package is trying to offer
+* Title/Subtitle Section
+quick subtitle and lexical binding cookie to tangle into the source code file.
+#+begin_src elisp :lexical t
+;; consult-toggles --- interface to toggle consult variables -*- lexical-binding: t; -*-
+
+#+end_src
+* Authorship and Package Details
+This package is an extension of minad's ~consult~. Therefore, it will depend on the most recent version of ~consult~ as of writing, "3.2." If a breaking change is implemented the package will be updated but I do not foresee that being an issue. Since the package depends on ~consult~ it will also depend on the minimum Emacs version that ~consult~ requires, 29.1.
+#+begin_src elisp :lexical t
+;; Author: David Sullivan <devel@sullatrix.us>
+;; URL: https://github.com/davidrs317
+;; Created: January 23, 2026
+;; Keywords: consult, toggle
+;; Package-Requires: ((emacs "29.1") (consult "3.2"))
+;; Version 0.1
+
+#+end_src
+* License Information
+Package will be freely accessible and modifiable so it will be licensed with the GNU General Public License. LICENSE file will be included in the repo.
+#+begin_src elisp :lexical t
+;; This file is not part of GNU Emacs.
+
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation (FSF), either version 3 of the License,
+;; or (at the option of the reader) any later version.
+
+;; This program is distributefd in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+;; General Public License for more details.
+
+;; A copy of the GNU General Public License should have been received
+;; along with this program. If not, see
+;; <http://www.gnu.org/licenses/>.
+#+end_src
+* Commentary
+Brief section to explain the purpose of the code within itself to follow the conventions of Emacs packages.
+#+begin_src elisp :lexical t
+;;; Commentary:
+
+;; This package adds a quick way to toggle the `consult-project-function'
+;; variable. This will allow for more methods to configure functions like
+;; `consult-grep' and `consult-ripgrep' which rely on `consult-project-function'
+;; to determine what to set their default directory to. This could be expanded
+;; further to add toggle-ability to other consult variables as well.
+
+#+end_src
+* Implementation Details
+** consult-grep
+#+begin_quote
+By default, the project directory is used if ~consult-project-function~ is defined and returns non-nil. Otherwise, the ~default-directory~ is searched.
+#+end_quote
+
+~consult-project-function~ returns a string of the project directory. By this definition, if a function is provided to provide a string of a different directory. This should work. The functions can be provided in a list that the user can select from using completing read.
+** code
+#+begin_src elisp :lexical t
+<<code-comment>>
+<<code-implementation>>
+<<footer>>
+#+end_src
+*** Comment to start code
+:PROPERTIES:
+:header-args: :noweb-ref code-comment
+:END:
+#+begin_src elisp :lexical t
+;;; Code:
+
+#+end_src
+*** Working Code
+:PROPERTIES:
+:header-args: :noweb-ref code-implementation
+:END:
+#+begin_src elisp :lexical t
+(require 'consult) ;; consult-project-function
+
+(defgroup consult-toggle nil
+  "Add additional toggle-ability to `consult'."
+  :group 'consult
+  :prefix "consult-toggle-")
+
+(defcustom consult-toggle-project-function-list '(#'consult--default-project-function)
+  "List of functions that `consult-project-function' can be set to."
+  :type `(repeat function))
+
+(defun consult-toggle-add-project-function (fn)
+  "Add FN to the toggle list.
+If called interactively, function will prompt for user input."
+  (interactive
+   (let* ((add-fn (intern (read-string "Project Function to add: "))))
+	 (list add-fn)))
+  (if (functionp fn)
+	  (push fn consult-toggle-project-function-list)
+	(message "cannot add %s to list as it is not a function" fn)))
+
+(defun consult-toggle-remove-project-function (fn)
+  "Remove FN from the toggle list.
+If called interactively, function will prompt for user input."
+  (interactive
+   (let ((rem-fn (intern (completing-read "Project Function to remove: "
+								  consult-toggle-project-function-list))))
+	 (list rem-fn)))
+  (cond ((eq fn #'consult--default-project-function)
+		 (message "do not remove default project function"))
+		((<= (length consult-toggle-project-function-list) 1)
+		 (message "project function list should contain at least one element"))
+		(t (setq consult-toggle-project-function-list (delq fn consult-toggle-project-function-list)))))
+
+(defun consult-toggle-project-function ()
+  "Toggle consult project function to function provided in `completing-read' list."
+  (interactive
+   (let ((fn (completing-read "Project Function: "
+							  consult-toggle-project-function-list)))
+	 (setq consult-project-function fn))))
+#+end_src
+*** footer
+:PROPERTIES:
+:header-args: :noweb-ref footer
+:END:
+#+begin_src elisp :lexical t
+(provide 'consult-toggles)
+
+;;; consult-toggles.el ends here
+#+end_src
+* Local Variables
+
+
+# Local Variables:
+# eval: (add-hook 'after-save-hook (lambda nil (if (y-or-n-p "Tangle?") (org-babel-tangle))) nil t)
+# End:
